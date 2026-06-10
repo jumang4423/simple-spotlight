@@ -67,7 +67,7 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
         let size = panel.frame.size
         let origin = NSPoint(
             x: screenFrame.midX - size.width / 2,
-            y: screenFrame.maxY - 220
+            y: screenFrame.midY - size.height / 2
         )
         panel.setFrameOrigin(origin)
     }
