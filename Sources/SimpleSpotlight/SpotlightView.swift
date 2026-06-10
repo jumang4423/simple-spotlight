@@ -1,0 +1,178 @@
+import AppKit
+import SwiftUI
+
+enum SpotlightResult: Identifiable, Equatable {
+    case app(LauncherApp)
+    case calculation(String)
+
+    var id: String {
+        switch self {
+        case .app(let app): return app.url.path
+        case .calculation(let value): return "calc-\(value)"
+        }
+    }
+}
+
+@MainActor
+final class SpotlightViewModel: ObservableObject {
+    @Published var query = "" {
+        didSet { refresh() }
+    }
+    @Published private(set) var results: [SpotlightResult] = []
+    @Published var selectionIndex = 0
+
+    private let appStore: ApplicationStore
+    private let calculator: Calculator
+
+    init(appStore: ApplicationStore, calculator: Calculator) {
+        self.appStore = appStore
+        self.calculator = calculator
+    }
+
+    func reset() {
+        query = ""
+        results = []
+        selectionIndex = 0
+    }
+
+    func moveSelection(_ delta: Int) {
+        guard !results.isEmpty else { return }
+        selectionIndex = min(max(selectionIndex + delta, 0), results.count - 1)
+    }
+
+    func executeSelected() {
+        guard results.indices.contains(selectionIndex) else { return }
+        if case .app(let app) = results[selectionIndex] {
+            appStore.open(app)
+        }
+    }
+
+    private func refresh() {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            results = []
+            selectionIndex = 0
+            return
+        }
+
+        var next = appStore.search(trimmed).map(SpotlightResult.app)
+        if let value = calculator.evaluate(trimmed) {
+            next.insert(.calculation(format(value)), at: 0)
+        }
+        results = next
+        selectionIndex = min(selectionIndex, max(next.count - 1, 0))
+    }
+
+    private func format(_ value: Double) -> String {
+        if value.rounded() == value {
+            return String(Int64(value))
+        }
+        return String(format: "%.10g", value)
+    }
+}
+
+struct SpotlightView: View {
+    @ObservedObject var viewModel: SpotlightViewModel
+    let close: () -> Void
+    @FocusState private var inputFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField("", text: $viewModel.query)
+                .textFieldStyle(.plain)
+                .font(.system(size: 30, weight: .regular, design: .default))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .focused($inputFocused)
+                .onSubmit {
+                    viewModel.executeSelected()
+                    close()
+                }
+
+            if !viewModel.results.isEmpty {
+                Divider().opacity(0.25)
+                VStack(spacing: 0) {
+                    ForEach(Array(viewModel.results.enumerated()), id: \.element.id) { index, result in
+                        ResultRow(result: result, isSelected: index == viewModel.selectionIndex)
+                            .frame(height: 48)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .frame(width: 680)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        )
+        .onAppear {
+            inputFocused = true
+        }
+        .onKeyPress(.escape) {
+            close()
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            viewModel.moveSelection(-1)
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            viewModel.moveSelection(1)
+            return .handled
+        }
+    }
+}
+
+private struct ResultRow: View {
+    let result: SpotlightResult
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            icon
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .background(isSelected ? Color.accentColor.opacity(0.18) : Color.clear)
+    }
+
+    private var title: String {
+        switch result {
+        case .app(let app): return app.name
+        case .calculation(let value): return value
+        }
+    }
+
+    private var subtitle: String {
+        switch result {
+        case .app: return "Application"
+        case .calculation: return "Calculator"
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch result {
+        case .app(let app):
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        case .calculation:
+            Image(systemName: "function")
+                .font(.system(size: 22))
+                .foregroundStyle(.secondary)
+        }
+    }
+}

@@ -1,0 +1,68 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+final class SpotlightPanelController: NSObject, NSWindowDelegate {
+    private let viewModel: SpotlightViewModel
+    private lazy var panel: NSPanel = makePanel()
+
+    init(viewModel: SpotlightViewModel) {
+        self.viewModel = viewModel
+        super.init()
+    }
+
+    func toggle() {
+        if panel.isVisible {
+            close()
+        } else {
+            show()
+        }
+    }
+
+    func show() {
+        viewModel.reset()
+        NSApp.activate()
+        centerPanel()
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    func close() {
+        panel.orderOut(nil)
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        close()
+    }
+
+    private func makePanel() -> NSPanel {
+        let rootView = SpotlightView(viewModel: viewModel) { [weak self] in
+            self?.close()
+        }
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 390),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.contentView = NSHostingView(rootView: rootView)
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        panel.delegate = self
+        panel.isReleasedWhenClosed = false
+        return panel
+    }
+
+    private func centerPanel() {
+        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let size = panel.frame.size
+        let origin = NSPoint(
+            x: screenFrame.midX - size.width / 2,
+            y: screenFrame.maxY - 220
+        )
+        panel.setFrameOrigin(origin)
+    }
+}
