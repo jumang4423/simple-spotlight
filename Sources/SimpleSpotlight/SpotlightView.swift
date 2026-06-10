@@ -79,7 +79,7 @@ final class SpotlightViewModel: ObservableObject {
 struct SpotlightView: View {
     @ObservedObject var viewModel: SpotlightViewModel
     let close: () -> Void
-    private let panelRadius: CGFloat = 34
+    private let panelRadius: CGFloat = 30
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,43 +87,29 @@ struct SpotlightView: View {
                 viewModel.executeSelected()
                 close()
             }, focusToken: viewModel.focusToken)
-            .frame(height: 96)
-            .padding(.horizontal, 30)
-            .padding(.top, 10)
-            .padding(.bottom, 2)
+            .frame(height: 74)
+            .padding(.horizontal, 28)
+            .padding(.top, 8)
+            .padding(.bottom, 0)
 
             if !viewModel.results.isEmpty {
                 Rectangle()
-                    .fill(.white.opacity(0.18))
+                    .fill(.primary.opacity(0.08))
                     .frame(height: 1)
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, 22)
                 VStack(spacing: 0) {
                     ForEach(Array(viewModel.results.enumerated()), id: \.element.id) { index, result in
                         ResultRow(result: result, isSelected: index == viewModel.selectionIndex)
-                            .frame(height: 56)
+                            .frame(height: 48)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
         }
-        .frame(width: 760)
-        .background(.ultraThinMaterial.opacity(0.82))
+        .frame(width: 680)
         .liquidGlassPanel(radius: panelRadius)
         .clipShape(RoundedRectangle(cornerRadius: panelRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: panelRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.62), .white.opacity(0.22), .black.opacity(0.16)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
-                )
-        )
-        .shadow(color: .black.opacity(0.20), radius: 34, x: 0, y: 22)
-        .shadow(color: .white.opacity(0.20), radius: 1, x: 0, y: 1)
         .onKeyPress(.escape) {
             close()
             return .handled
@@ -151,7 +137,7 @@ private struct FocusedSearchField: NSViewRepresentable {
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 38, weight: .regular)
+        field.font = .systemFont(ofSize: 32, weight: .regular)
         field.textColor = .labelColor
         field.placeholderString = ""
         field.target = context.coordinator
@@ -204,32 +190,28 @@ private struct ResultRow: View {
     var body: some View {
         HStack(spacing: 12) {
             icon
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .lineLimit(1)
                 Text(subtitle)
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer()
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .background(selectionBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     @ViewBuilder
     private var selectionBackground: some View {
         if isSelected {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.accentColor.opacity(0.18))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(.white.opacity(0.24), lineWidth: 1)
-                )
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.08))
         } else {
             Color.clear
         }
@@ -268,9 +250,9 @@ private extension View {
     @ViewBuilder
     func liquidGlassPanel(radius: CGFloat) -> some View {
         if #available(macOS 26.0, *) {
-            glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            glassEffect(.regular, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
         } else {
-            self
+            background(.regularMaterial)
         }
     }
 }
