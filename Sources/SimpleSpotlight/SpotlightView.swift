@@ -20,6 +20,7 @@ final class SpotlightViewModel: ObservableObject {
     }
     @Published private(set) var results: [SpotlightResult] = []
     @Published var selectionIndex = 0
+    @Published var focusToken = UUID()
 
     private let appStore: ApplicationStore
     private let calculator: Calculator
@@ -33,6 +34,10 @@ final class SpotlightViewModel: ObservableObject {
         query = ""
         results = []
         selectionIndex = 0
+    }
+
+    func requestFocus() {
+        focusToken = UUID()
     }
 
     func moveSelection(_ delta: Int) {
@@ -74,14 +79,13 @@ final class SpotlightViewModel: ObservableObject {
 struct SpotlightView: View {
     @ObservedObject var viewModel: SpotlightViewModel
     let close: () -> Void
-    @State private var focusToken = UUID()
 
     var body: some View {
         VStack(spacing: 0) {
             FocusedSearchField(text: $viewModel.query, onSubmit: {
                 viewModel.executeSelected()
                 close()
-            }, focusToken: focusToken)
+            }, focusToken: viewModel.focusToken)
             .frame(height: 72)
             .padding(.horizontal, 24)
             .padding(.vertical, 4)
@@ -104,9 +108,6 @@ struct SpotlightView: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
-        .onAppear {
-            focusToken = UUID()
-        }
         .onKeyPress(.escape) {
             close()
             return .handled

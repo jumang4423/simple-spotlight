@@ -21,13 +21,11 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
 
     func show() {
         viewModel.reset()
+        viewModel.requestFocus()
         NSApp.activate(ignoringOtherApps: true)
         centerPanel()
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
-        DispatchQueue.main.async {
-            self.panel.makeFirstResponder(self.panel.contentView)
-        }
     }
 
     func close() {
