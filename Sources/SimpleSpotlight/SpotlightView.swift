@@ -102,9 +102,9 @@ struct SpotlightView: View {
         }
         .frame(width: 680)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
         .onAppear {
