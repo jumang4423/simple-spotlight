@@ -188,23 +188,26 @@ private struct ResultRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
-            icon
-                .frame(width: 30, height: 30)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        ZStack {
+            selectionBackground
+                .padding(.vertical, 5)
+
+            HStack(spacing: 12) {
+                icon
+                    .frame(width: 30, height: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
             }
-            Spacer()
+            .padding(.horizontal, 12)
         }
-        .padding(.horizontal, 12)
-        .background(selectionBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     @ViewBuilder
