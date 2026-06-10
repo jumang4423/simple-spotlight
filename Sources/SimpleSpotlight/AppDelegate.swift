@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.panelController?.toggle()
         }
         if hotKey == nil {
-            statusItem?.button?.title = "⌕!"
+            statusItem?.button?.title = "!"
             NSLog("SimpleSpotlight: failed to register Option+Space hotkey")
         }
     }
@@ -31,8 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     private func installStatusItem() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "⌕"
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "Simple Spotlight") {
+            image.size = NSSize(width: 18, height: 18)
+            item.button?.image = image
+        } else {
+            item.button?.title = "Search"
+        }
 
         let menu = NSMenu()
         let showItem = NSMenuItem(title: "Show Simple Spotlight", action: #selector(showSpotlight), keyEquivalent: "")

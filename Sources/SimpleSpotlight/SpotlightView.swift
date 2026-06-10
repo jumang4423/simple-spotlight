@@ -74,20 +74,17 @@ final class SpotlightViewModel: ObservableObject {
 struct SpotlightView: View {
     @ObservedObject var viewModel: SpotlightViewModel
     let close: () -> Void
+    @State private var focusToken = UUID()
 
     var body: some View {
         VStack(spacing: 0) {
-            FocusedSearchField(text: $viewModel.query) {
+            FocusedSearchField(text: $viewModel.query, onSubmit: {
                 viewModel.executeSelected()
                 close()
-            }
+            }, focusToken: focusToken)
             .frame(height: 72)
             .padding(.horizontal, 24)
             .padding(.vertical, 4)
-                .onSubmit {
-                    viewModel.executeSelected()
-                    close()
-                }
 
             if !viewModel.results.isEmpty {
                 Divider().opacity(0.25)
@@ -107,6 +104,9 @@ struct SpotlightView: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
+        .onAppear {
+            focusToken = UUID()
+        }
         .onKeyPress(.escape) {
             close()
             return .handled
@@ -125,6 +125,7 @@ struct SpotlightView: View {
 private struct FocusedSearchField: NSViewRepresentable {
     @Binding var text: String
     let onSubmit: () -> Void
+    let focusToken: UUID
 
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
@@ -146,8 +147,11 @@ private struct FocusedSearchField: NSViewRepresentable {
         if field.stringValue != text {
             field.stringValue = text
         }
-        DispatchQueue.main.async {
-            field.window?.makeFirstResponder(field)
+        if context.coordinator.focusToken != focusToken {
+            context.coordinator.focusToken = focusToken
+            DispatchQueue.main.async {
+                field.window?.makeFirstResponder(field)
+            }
         }
     }
 
@@ -158,6 +162,7 @@ private struct FocusedSearchField: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextFieldDelegate {
         @Binding private var text: String
         private let onSubmit: () -> Void
+        var focusToken: UUID?
 
         init(text: Binding<String>, onSubmit: @escaping () -> Void) {
             _text = text
