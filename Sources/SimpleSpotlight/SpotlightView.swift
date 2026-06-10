@@ -132,7 +132,6 @@ private struct FocusedSearchField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSTextField {
         let field = NSTextField()
-        field.cell = VerticallyCenteredTextFieldCell(textCell: "")
         field.delegate = context.coordinator
         field.isBordered = false
         field.isBezeled = false
@@ -181,24 +180,6 @@ private struct FocusedSearchField: NSViewRepresentable {
         @objc func submit() {
             onSubmit()
         }
-    }
-}
-
-private final class VerticallyCenteredTextFieldCell: NSTextFieldCell {
-    override func drawingRect(forBounds rect: NSRect) -> NSRect {
-        var drawingRect = super.drawingRect(forBounds: rect)
-        let textSize = cellSize(forBounds: rect)
-        drawingRect.origin.y += max(0, (rect.height - textSize.height) / 2)
-        drawingRect.size.height = min(drawingRect.height, textSize.height)
-        return drawingRect
-    }
-
-    override func edit(withFrame rect: NSRect, in controlView: NSView, editor textObj: NSText, delegate: Any?, event: NSEvent?) {
-        super.edit(withFrame: drawingRect(forBounds: rect), in: controlView, editor: textObj, delegate: delegate, event: event)
-    }
-
-    override func select(withFrame rect: NSRect, in controlView: NSView, editor textObj: NSText, delegate: Any?, start selStart: Int, length selLength: Int) {
-        super.select(withFrame: drawingRect(forBounds: rect), in: controlView, editor: textObj, delegate: delegate, start: selStart, length: selLength)
     }
 }
 
