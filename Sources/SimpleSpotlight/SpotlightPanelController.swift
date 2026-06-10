@@ -41,15 +41,17 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
 
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 390),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
+        panel.title = "Simple Spotlight"
         panel.contentView = NSHostingView(rootView: rootView)
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true
         panel.level = .floating
+        panel.hidesOnDeactivate = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.delegate = self
         panel.isReleasedWhenClosed = false

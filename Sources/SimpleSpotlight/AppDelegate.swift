@@ -6,6 +6,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: GlobalHotKey?
     private var panelController: SpotlightPanelController?
+    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let calculator = Calculator()
         let viewModel = SpotlightViewModel(appStore: store, calculator: calculator)
         panelController = SpotlightPanelController(viewModel: viewModel)
+        installStatusItem()
 
         hotKey = GlobalHotKey(keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey)) { [weak self] in
             self?.panelController?.toggle()
@@ -22,6 +24,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         hotKey = nil
+    }
+
+    @MainActor
+    private func installStatusItem() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.title = "⌕"
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Show Simple Spotlight", action: #selector(showSpotlight), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+        item.menu = menu
+        statusItem = item
+    }
+
+    @MainActor
+    @objc private func showSpotlight() {
+        panelController?.show()
+    }
+
+    @MainActor
+    @objc private func quit() {
+        NSApp.terminate(nil)
     }
 }
 
