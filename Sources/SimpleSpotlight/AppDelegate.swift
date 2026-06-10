@@ -19,6 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKey = GlobalHotKey(keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey)) { [weak self] in
             self?.panelController?.toggle()
         }
+        if hotKey == nil {
+            statusItem?.button?.title = "⌕!"
+            NSLog("SimpleSpotlight: failed to register Option+Space hotkey")
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -31,9 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.title = "⌕"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Show Simple Spotlight", action: #selector(showSpotlight), keyEquivalent: ""))
+        let showItem = NSMenuItem(title: "Show Simple Spotlight", action: #selector(showSpotlight), keyEquivalent: "")
+        showItem.target = self
+        menu.addItem(showItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
         item.menu = menu
         statusItem = item
     }
@@ -61,7 +69,7 @@ final class GlobalHotKey: @unchecked Sendable {
         let selfPointer = Unmanaged.passUnretained(self).toOpaque()
 
         let installStatus = InstallEventHandler(
-            GetApplicationEventTarget(),
+            GetEventDispatcherTarget(),
             { _, event, userData in
                 guard let event, let userData else { return noErr }
                 var hotKeyID = EventHotKeyID()
@@ -94,7 +102,7 @@ final class GlobalHotKey: @unchecked Sendable {
             keyCode,
             modifiers,
             id,
-            GetApplicationEventTarget(),
+            GetEventDispatcherTarget(),
             0,
             &hotKeyRef
         )

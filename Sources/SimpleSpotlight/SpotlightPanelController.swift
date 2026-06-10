@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class SpotlightPanelController: NSObject, NSWindowDelegate {
     private let viewModel: SpotlightViewModel
-    private lazy var panel: NSPanel = makePanel()
+    private lazy var panel: KeyablePanel = makePanel()
 
     init(viewModel: SpotlightViewModel) {
         self.viewModel = viewModel
@@ -21,9 +21,13 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
 
     func show() {
         viewModel.reset()
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         centerPanel()
         panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        DispatchQueue.main.async {
+            self.panel.makeFirstResponder(self.panel.contentView)
+        }
     }
 
     func close() {
@@ -34,12 +38,12 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
         close()
     }
 
-    private func makePanel() -> NSPanel {
+    private func makePanel() -> KeyablePanel {
         let rootView = SpotlightView(viewModel: viewModel) { [weak self] in
             self?.close()
         }
 
-        let panel = NSPanel(
+        let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 390),
             styleMask: [.borderless],
             backing: .buffered,
@@ -67,4 +71,9 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
         )
         panel.setFrameOrigin(origin)
     }
+}
+
+final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }

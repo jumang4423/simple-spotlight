@@ -108,7 +108,9 @@ struct SpotlightView: View {
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
         .onAppear {
-            inputFocused = true
+            DispatchQueue.main.async {
+                inputFocused = true
+            }
         }
         .onKeyPress(.escape) {
             close()
