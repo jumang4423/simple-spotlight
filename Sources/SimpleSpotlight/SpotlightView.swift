@@ -74,16 +74,16 @@ final class SpotlightViewModel: ObservableObject {
 struct SpotlightView: View {
     @ObservedObject var viewModel: SpotlightViewModel
     let close: () -> Void
-    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField("", text: $viewModel.query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 30, weight: .regular, design: .default))
-                .padding(.horizontal, 24)
-                .padding(.vertical, 20)
-                .focused($inputFocused)
+            FocusedSearchField(text: $viewModel.query) {
+                viewModel.executeSelected()
+                close()
+            }
+            .frame(height: 72)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 4)
                 .onSubmit {
                     viewModel.executeSelected()
                     close()
@@ -107,11 +107,6 @@ struct SpotlightView: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
-        .onAppear {
-            DispatchQueue.main.async {
-                inputFocused = true
-            }
-        }
         .onKeyPress(.escape) {
             close()
             return .handled
@@ -123,6 +118,59 @@ struct SpotlightView: View {
         .onKeyPress(.downArrow) {
             viewModel.moveSelection(1)
             return .handled
+        }
+    }
+}
+
+private struct FocusedSearchField: NSViewRepresentable {
+    @Binding var text: String
+    let onSubmit: () -> Void
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.delegate = context.coordinator
+        field.isBordered = false
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = .systemFont(ofSize: 30, weight: .regular)
+        field.textColor = .labelColor
+        field.placeholderString = ""
+        field.target = context.coordinator
+        field.action = #selector(Coordinator.submit)
+        field.lineBreakMode = .byTruncatingTail
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+        DispatchQueue.main.async {
+            field.window?.makeFirstResponder(field)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        @Binding private var text: String
+        private let onSubmit: () -> Void
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            _text = text
+            self.onSubmit = onSubmit
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            text = field.stringValue
+        }
+
+        @objc func submit() {
+            onSubmit()
         }
     }
 }
