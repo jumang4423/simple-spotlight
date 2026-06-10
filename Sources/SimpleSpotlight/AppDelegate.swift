@@ -2,7 +2,6 @@ import AppKit
 import Carbon
 import SwiftUI
 
-@main
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: GlobalHotKey?
     private var panelController: SpotlightPanelController?
