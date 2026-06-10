@@ -139,7 +139,7 @@ private struct FocusedSearchField: NSViewRepresentable {
         field.focusRingType = .none
         field.font = .systemFont(ofSize: 32, weight: .regular)
         field.textColor = .labelColor
-        field.placeholderString = ""
+        field.placeholderString = "Search apps or calculate"
         field.target = context.coordinator
         field.action = #selector(Coordinator.submit)
         field.lineBreakMode = .byTruncatingTail
