@@ -42,7 +42,7 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
         }
 
         let panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 330),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false

@@ -87,10 +87,10 @@ struct SpotlightView: View {
                 viewModel.executeSelected()
                 close()
             }, focusToken: viewModel.focusToken)
-            .frame(height: 74)
-            .padding(.horizontal, 28)
-            .padding(.top, 4)
-            .padding(.bottom, 4)
+            .frame(height: 64)
+            .padding(.horizontal, 24)
+            .padding(.top, 3)
+            .padding(.bottom, 3)
 
             if !viewModel.results.isEmpty {
                 Rectangle()
@@ -100,14 +100,14 @@ struct SpotlightView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(viewModel.results.enumerated()), id: \.element.id) { index, result in
                         ResultRow(result: result, isSelected: index == viewModel.selectionIndex)
-                            .frame(height: 54)
+                            .frame(height: 48)
                     }
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.vertical, 12)
             }
         }
-        .frame(width: 680)
+        .frame(width: 620)
         .liquidGlassPanel(radius: panelRadius)
         .clipShape(RoundedRectangle(cornerRadius: panelRadius, style: .continuous))
         .onKeyPress(.escape) {
@@ -137,9 +137,9 @@ private struct FocusedSearchField: NSViewRepresentable {
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 32, weight: .regular)
+        field.font = .systemFont(ofSize: 28, weight: .regular)
         field.textColor = .labelColor
-        field.placeholderString = "Search apps or calculate"
+        field.placeholderString = "Search apps or calculate..."
         field.target = context.coordinator
         field.action = #selector(Coordinator.submit)
         field.lineBreakMode = .byTruncatingTail
@@ -193,14 +193,14 @@ private struct ResultRow: View {
                 .padding(.vertical, 5)
 
             HStack(spacing: 12) {
-                icon
-                    .frame(width: 30, height: 30)
+            icon
+                .frame(width: 27, height: 27)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .lineLimit(1)
                     Text(subtitle)
-                        .font(.system(size: 12, weight: .regular))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
