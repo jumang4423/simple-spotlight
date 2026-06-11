@@ -5,13 +5,13 @@ import SwiftUI
 enum SpotlightResult: Identifiable, Equatable {
     case app(LauncherApp)
     case calculation(String)
-    case youtubeDownload(String)
+    case youtubeDownload(URL, String)
 
     var id: String {
         switch self {
         case .app(let app): return app.url.path
         case .calculation(let value): return "calc-\(value)"
-        case .youtubeDownload(let value): return "youtube-\(value)"
+        case .youtubeDownload(let url, let value): return "youtube-\(url.absoluteString)-\(value)"
         }
     }
 }
@@ -58,10 +58,19 @@ final class SpotlightViewModel: ObservableObject {
         selectionIndex = min(max(selectionIndex + delta, 0), results.count - 1)
     }
 
-    func executeSelected() {
-        guard results.indices.contains(selectionIndex) else { return }
-        if case .app(let app) = results[selectionIndex] {
+    @discardableResult
+    func executeSelected() -> Bool {
+        guard results.indices.contains(selectionIndex) else { return false }
+        switch results[selectionIndex] {
+        case .app(let app):
             appStore.open(app)
+            return true
+        case .youtubeDownload(let url, _):
+            downloader.downloadIfNeeded(url)
+            results = [youtubeResult(for: url)]
+            return false
+        case .calculation:
+            return false
         }
     }
 
@@ -74,8 +83,7 @@ final class SpotlightViewModel: ObservableObject {
         }
 
         if let youtubeURL = youtubeURL(from: trimmed) {
-            downloader.downloadIfNeeded(youtubeURL)
-            results = [youtubeResult()]
+            results = [youtubeResult(for: youtubeURL)]
             selectionIndex = 0
             return
         }
@@ -98,16 +106,18 @@ final class SpotlightViewModel: ObservableObject {
         return url
     }
 
-    private func youtubeResult() -> SpotlightResult {
+    private func youtubeResult(for url: URL) -> SpotlightResult {
         switch downloader.state {
         case .idle:
-            return .youtubeDownload("Preparing YouTube MP3...")
+            return .youtubeDownload(url, "Download YouTube MP3")
+        case .downloading(let activeURL) where activeURL == url:
+            return .youtubeDownload(url, "Downloading MP3 to Downloads...")
         case .downloading:
-            return .youtubeDownload("Downloading MP3 to Downloads...")
+            return .youtubeDownload(url, "Download YouTube MP3")
         case .finished(let file):
-            return .youtubeDownload("Downloaded \(file.lastPathComponent)")
+            return .youtubeDownload(url, "Downloaded \(file.lastPathComponent)")
         case .failed(let message):
-            return .youtubeDownload("Download failed: \(message)")
+            return .youtubeDownload(url, "Download failed: \(message)")
         }
     }
 
@@ -127,8 +137,9 @@ struct SpotlightView: View {
     var body: some View {
         VStack(spacing: 0) {
             FocusedSearchField(text: $viewModel.query, onSubmit: {
-                viewModel.executeSelected()
-                close()
+                if viewModel.executeSelected() {
+                    close()
+                }
             }, focusToken: viewModel.focusToken)
             .frame(height: 64)
             .padding(.horizontal, 24)
@@ -293,7 +304,7 @@ private struct ResultRow: View {
         switch result {
         case .app(let app): return app.name
         case .calculation(let value): return value
-        case .youtubeDownload(let value): return value
+        case .youtubeDownload(_, let value): return value
         }
     }
 
@@ -301,7 +312,7 @@ private struct ResultRow: View {
         switch result {
         case .app: return "Application"
         case .calculation: return "Calculator"
-        case .youtubeDownload: return "YouTube MP3"
+        case .youtubeDownload: return "Select to download to Downloads"
         }
     }
 
