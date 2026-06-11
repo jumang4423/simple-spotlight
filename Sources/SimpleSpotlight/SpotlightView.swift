@@ -329,13 +329,35 @@ private struct ResultRow: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.secondary)
         case .youtubeDownload(_, _, let isLoading):
+            YouTubeIcon(isLoading: isLoading)
+        }
+    }
+}
+
+private struct YouTubeIcon: View {
+    let isLoading: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            AsyncImage(url: URL(string: "https://www.youtube.com/favicon.ico")) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                default:
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.red)
+                }
+            }
+            .frame(width: 24, height: 24)
+
             if isLoading {
                 ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: "music.note.arrow.down")
-                    .font(.system(size: 21))
-                    .foregroundStyle(.secondary)
+                    .controlSize(.mini)
+                    .scaleEffect(0.72)
+                    .offset(x: 5, y: 5)
             }
         }
     }
