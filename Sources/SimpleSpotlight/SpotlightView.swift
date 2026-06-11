@@ -1,14 +1,17 @@
 import AppKit
+import Combine
 import SwiftUI
 
 enum SpotlightResult: Identifiable, Equatable {
     case app(LauncherApp)
     case calculation(String)
+    case youtubeDownload(String)
 
     var id: String {
         switch self {
         case .app(let app): return app.url.path
         case .calculation(let value): return "calc-\(value)"
+        case .youtubeDownload(let value): return "youtube-\(value)"
         }
     }
 }
@@ -24,16 +27,26 @@ final class SpotlightViewModel: ObservableObject {
 
     private let appStore: ApplicationStore
     private let calculator: Calculator
+    private let downloader: YouTubeDownloader
+    private var cancellables = Set<AnyCancellable>()
 
-    init(appStore: ApplicationStore, calculator: Calculator) {
+    init(appStore: ApplicationStore, calculator: Calculator, downloader: YouTubeDownloader) {
         self.appStore = appStore
         self.calculator = calculator
+        self.downloader = downloader
+        downloader.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refresh()
+            }
+            .store(in: &cancellables)
     }
 
     func reset() {
         query = ""
         results = []
         selectionIndex = 0
+        downloader.reset()
     }
 
     func requestFocus() {
@@ -60,12 +73,42 @@ final class SpotlightViewModel: ObservableObject {
             return
         }
 
+        if let youtubeURL = youtubeURL(from: trimmed) {
+            downloader.downloadIfNeeded(youtubeURL)
+            results = [youtubeResult()]
+            selectionIndex = 0
+            return
+        }
+
         var next = appStore.search(trimmed).map(SpotlightResult.app)
         if let value = calculator.evaluate(trimmed) {
             next.insert(.calculation(format(value)), at: 0)
         }
         results = next
         selectionIndex = min(selectionIndex, max(next.count - 1, 0))
+    }
+
+    private func youtubeURL(from input: String) -> URL? {
+        guard let url = URL(string: input),
+              let host = url.host?.lowercased(),
+              host == "youtu.be" || host.hasSuffix("youtube.com"),
+              input.lowercased().hasPrefix("http") else {
+            return nil
+        }
+        return url
+    }
+
+    private func youtubeResult() -> SpotlightResult {
+        switch downloader.state {
+        case .idle:
+            return .youtubeDownload("Preparing YouTube MP3...")
+        case .downloading:
+            return .youtubeDownload("Downloading MP3 to Downloads...")
+        case .finished(let file):
+            return .youtubeDownload("Downloaded \(file.lastPathComponent)")
+        case .failed(let message):
+            return .youtubeDownload("Download failed: \(message)")
+        }
     }
 
     private func format(_ value: Double) -> String {
@@ -131,7 +174,7 @@ private struct FocusedSearchField: NSViewRepresentable {
     let focusToken: UUID
 
     func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField()
+        let field = PasteFriendlyTextField()
         field.delegate = context.coordinator
         field.isBordered = false
         field.isBezeled = false
@@ -183,6 +226,32 @@ private struct FocusedSearchField: NSViewRepresentable {
     }
 }
 
+private final class PasteFriendlyTextField: NSTextField {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.command),
+              let characters = event.charactersIgnoringModifiers?.lowercased() else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch characters {
+        case "v":
+            currentEditor()?.paste(nil)
+            return true
+        case "c":
+            currentEditor()?.copy(nil)
+            return true
+        case "x":
+            currentEditor()?.cut(nil)
+            return true
+        case "a":
+            currentEditor()?.selectAll(nil)
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+}
+
 private struct ResultRow: View {
     let result: SpotlightResult
     let isSelected: Bool
@@ -224,6 +293,7 @@ private struct ResultRow: View {
         switch result {
         case .app(let app): return app.name
         case .calculation(let value): return value
+        case .youtubeDownload(let value): return value
         }
     }
 
@@ -231,6 +301,7 @@ private struct ResultRow: View {
         switch result {
         case .app: return "Application"
         case .calculation: return "Calculator"
+        case .youtubeDownload: return "YouTube MP3"
         }
     }
 
@@ -244,6 +315,10 @@ private struct ResultRow: View {
         case .calculation:
             Image(systemName: "function")
                 .font(.system(size: 22))
+                .foregroundStyle(.secondary)
+        case .youtubeDownload:
+            Image(systemName: "music.note.arrow.down")
+                .font(.system(size: 21))
                 .foregroundStyle(.secondary)
         }
     }
