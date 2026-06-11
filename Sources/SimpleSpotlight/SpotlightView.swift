@@ -5,13 +5,13 @@ import SwiftUI
 enum SpotlightResult: Identifiable, Equatable {
     case app(LauncherApp)
     case calculation(String)
-    case youtubeDownload(URL, String, Bool)
+    case youtubeDownload(URL, YouTubeDownloadKind, String, Bool)
 
     var id: String {
         switch self {
         case .app(let app): return app.url.path
         case .calculation(let value): return "calc-\(value)"
-        case .youtubeDownload(let url, let value, let isLoading): return "youtube-\(url.absoluteString)-\(value)-\(isLoading)"
+        case .youtubeDownload(let url, let kind, let value, let isLoading): return "youtube-\(url.absoluteString)-\(kind.rawValue)-\(value)-\(isLoading)"
         }
     }
 }
@@ -65,9 +65,9 @@ final class SpotlightViewModel: ObservableObject {
         case .app(let app):
             appStore.open(app)
             return true
-        case .youtubeDownload(let url, _, _):
-            downloader.downloadIfNeeded(url)
-            results = [youtubeResult(for: url)]
+        case .youtubeDownload(let url, let kind, _, _):
+            downloader.downloadIfNeeded(url, kind: kind)
+            results = youtubeResults(for: url)
             return false
         case .calculation:
             return false
@@ -83,7 +83,7 @@ final class SpotlightViewModel: ObservableObject {
         }
 
         if let youtubeURL = youtubeURL(from: trimmed) {
-            results = [youtubeResult(for: youtubeURL)]
+            results = youtubeResults(for: youtubeURL)
             selectionIndex = 0
             return
         }
@@ -106,18 +106,43 @@ final class SpotlightViewModel: ObservableObject {
         return url
     }
 
-    private func youtubeResult(for url: URL) -> SpotlightResult {
+    private func youtubeResults(for url: URL) -> [SpotlightResult] {
+        [
+            youtubeResult(for: url, kind: .mp3),
+            youtubeResult(for: url, kind: .subtitle)
+        ]
+    }
+
+    private func youtubeResult(for url: URL, kind: YouTubeDownloadKind) -> SpotlightResult {
         switch downloader.state {
         case .idle:
-            return .youtubeDownload(url, "yt-dlp mp3", false)
-        case .downloading(let activeURL) where activeURL == url:
-            return .youtubeDownload(url, "Downloading MP3 to Downloads...", true)
+            return .youtubeDownload(url, kind, youtubeTitle(for: kind), false)
+        case .downloading(let activeURL, let activeKind) where activeURL == url && activeKind == kind:
+            return .youtubeDownload(url, kind, downloadingTitle(for: kind), true)
         case .downloading:
-            return .youtubeDownload(url, "yt-dlp mp3", false)
-        case .finished(let file):
-            return .youtubeDownload(url, "Downloaded \(file.lastPathComponent)", false)
-        case .failed(let message):
-            return .youtubeDownload(url, "Download failed: \(message)", false)
+            return .youtubeDownload(url, kind, youtubeTitle(for: kind), false)
+        case .finished(let activeURL, let activeKind, let file) where activeURL == url && activeKind == kind:
+            return .youtubeDownload(url, kind, "Downloaded \(file.lastPathComponent)", false)
+        case .finished:
+            return .youtubeDownload(url, kind, youtubeTitle(for: kind), false)
+        case .failed(let activeURL, let activeKind, let message) where activeURL == url && activeKind == kind:
+            return .youtubeDownload(url, kind, "Download failed: \(message)", false)
+        case .failed:
+            return .youtubeDownload(url, kind, youtubeTitle(for: kind), false)
+        }
+    }
+
+    private func youtubeTitle(for kind: YouTubeDownloadKind) -> String {
+        switch kind {
+        case .mp3: return "yt-dlp mp3"
+        case .subtitle: return "yt-dlp subtitle"
+        }
+    }
+
+    private func downloadingTitle(for kind: YouTubeDownloadKind) -> String {
+        switch kind {
+        case .mp3: return "Downloading MP3 to Downloads..."
+        case .subtitle: return "Downloading subtitle txt to Downloads..."
         }
     }
 
@@ -304,7 +329,7 @@ private struct ResultRow: View {
         switch result {
         case .app(let app): return app.name
         case .calculation(let value): return value
-        case .youtubeDownload(_, let value, _): return value
+        case .youtubeDownload(_, _, let value, _): return value
         }
     }
 
@@ -312,7 +337,7 @@ private struct ResultRow: View {
         switch result {
         case .app: return "Application"
         case .calculation: return "Calculator"
-        case .youtubeDownload(_, _, let isLoading):
+        case .youtubeDownload(_, _, _, let isLoading):
             return isLoading ? "Please wait" : "Select to download to Downloads"
         }
     }
@@ -328,13 +353,14 @@ private struct ResultRow: View {
             Image(systemName: "function")
                 .font(.system(size: 22))
                 .foregroundStyle(.secondary)
-        case .youtubeDownload(_, _, let isLoading):
-            YouTubeIcon(isLoading: isLoading)
+        case .youtubeDownload(_, let kind, _, let isLoading):
+            YouTubeIcon(kind: kind, isLoading: isLoading)
         }
     }
 }
 
 private struct YouTubeIcon: View {
+    let kind: YouTubeDownloadKind
     let isLoading: Bool
 
     var body: some View {
@@ -346,9 +372,7 @@ private struct YouTubeIcon: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                 default:
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(.red)
+                    fallbackIcon
                 }
             }
             .frame(width: 24, height: 24)
@@ -359,6 +383,20 @@ private struct YouTubeIcon: View {
                     .scaleEffect(0.72)
                     .offset(x: 5, y: 5)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var fallbackIcon: some View {
+        switch kind {
+        case .mp3:
+            Image(systemName: "play.rectangle.fill")
+                .font(.system(size: 22))
+                .foregroundStyle(.red)
+        case .subtitle:
+            Image(systemName: "captions.bubble.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(.red)
         }
     }
 }
