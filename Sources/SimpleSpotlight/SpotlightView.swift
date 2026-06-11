@@ -377,9 +377,9 @@ private extension View {
     @ViewBuilder
     func liquidGlassPanel(radius: CGFloat) -> some View {
         if #available(macOS 26.0, *) {
-            glassEffect(.regular, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            glassEffect(.clear.tint(.white.opacity(0.04)), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
         } else {
-            background(.regularMaterial)
+            background(.ultraThinMaterial.opacity(0.58))
         }
     }
 }
