@@ -193,7 +193,7 @@ private struct FocusedSearchField: NSViewRepresentable {
         field.focusRingType = .none
         field.font = .systemFont(ofSize: 28, weight: .regular)
         field.textColor = .labelColor
-        field.placeholderString = "Search apps or calculate..."
+        field.placeholderString = "jumango ai..."
         field.target = context.coordinator
         field.action = #selector(Coordinator.submit)
         field.lineBreakMode = .byTruncatingTail
