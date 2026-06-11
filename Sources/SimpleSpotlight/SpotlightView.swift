@@ -63,6 +63,7 @@ final class SpotlightViewModel: ObservableObject {
         guard results.indices.contains(selectionIndex) else { return false }
         switch results[selectionIndex] {
         case .app(let app):
+            appStore.recordSelection(query: query, app: app)
             appStore.open(app)
             return true
         case .youtubeDownload(let url, _, _):
