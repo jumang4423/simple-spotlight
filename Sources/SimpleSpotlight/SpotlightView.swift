@@ -109,11 +109,11 @@ final class SpotlightViewModel: ObservableObject {
     private func youtubeResult(for url: URL) -> SpotlightResult {
         switch downloader.state {
         case .idle:
-            return .youtubeDownload(url, "Download YouTube MP3", false)
+            return .youtubeDownload(url, "yt-dlp mp3", false)
         case .downloading(let activeURL) where activeURL == url:
             return .youtubeDownload(url, "Downloading MP3 to Downloads...", true)
         case .downloading:
-            return .youtubeDownload(url, "Download YouTube MP3", false)
+            return .youtubeDownload(url, "yt-dlp mp3", false)
         case .finished(let file):
             return .youtubeDownload(url, "Downloaded \(file.lastPathComponent)", false)
         case .failed(let message):
