@@ -49,7 +49,9 @@ final class ApplicationStore {
     private static func scanApplications() -> [LauncherApp] {
         let roots = [
             URL(fileURLWithPath: "/Applications", isDirectory: true),
-            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true)
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true),
+            URL(fileURLWithPath: "/System/Applications", isDirectory: true),
+            URL(fileURLWithPath: "/System/Volumes/Preboot/Cryptexes/App/System/Applications", isDirectory: true)
         ]
 
         var seen = Set<URL>()
