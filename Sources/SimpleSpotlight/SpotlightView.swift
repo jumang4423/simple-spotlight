@@ -5,13 +5,13 @@ import SwiftUI
 enum SpotlightResult: Identifiable, Equatable {
     case app(LauncherApp)
     case calculation(String)
-    case youtubeDownload(URL, String)
+    case youtubeDownload(URL, String, Bool)
 
     var id: String {
         switch self {
         case .app(let app): return app.url.path
         case .calculation(let value): return "calc-\(value)"
-        case .youtubeDownload(let url, let value): return "youtube-\(url.absoluteString)-\(value)"
+        case .youtubeDownload(let url, let value, let isLoading): return "youtube-\(url.absoluteString)-\(value)-\(isLoading)"
         }
     }
 }
@@ -65,7 +65,7 @@ final class SpotlightViewModel: ObservableObject {
         case .app(let app):
             appStore.open(app)
             return true
-        case .youtubeDownload(let url, _):
+        case .youtubeDownload(let url, _, _):
             downloader.downloadIfNeeded(url)
             results = [youtubeResult(for: url)]
             return false
@@ -109,15 +109,15 @@ final class SpotlightViewModel: ObservableObject {
     private func youtubeResult(for url: URL) -> SpotlightResult {
         switch downloader.state {
         case .idle:
-            return .youtubeDownload(url, "Download YouTube MP3")
+            return .youtubeDownload(url, "Download YouTube MP3", false)
         case .downloading(let activeURL) where activeURL == url:
-            return .youtubeDownload(url, "Downloading MP3 to Downloads...")
+            return .youtubeDownload(url, "Downloading MP3 to Downloads...", true)
         case .downloading:
-            return .youtubeDownload(url, "Download YouTube MP3")
+            return .youtubeDownload(url, "Download YouTube MP3", false)
         case .finished(let file):
-            return .youtubeDownload(url, "Downloaded \(file.lastPathComponent)")
+            return .youtubeDownload(url, "Downloaded \(file.lastPathComponent)", false)
         case .failed(let message):
-            return .youtubeDownload(url, "Download failed: \(message)")
+            return .youtubeDownload(url, "Download failed: \(message)", false)
         }
     }
 
@@ -304,7 +304,7 @@ private struct ResultRow: View {
         switch result {
         case .app(let app): return app.name
         case .calculation(let value): return value
-        case .youtubeDownload(_, let value): return value
+        case .youtubeDownload(_, let value, _): return value
         }
     }
 
@@ -312,7 +312,8 @@ private struct ResultRow: View {
         switch result {
         case .app: return "Application"
         case .calculation: return "Calculator"
-        case .youtubeDownload: return "Select to download to Downloads"
+        case .youtubeDownload(_, _, let isLoading):
+            return isLoading ? "Please wait" : "Select to download to Downloads"
         }
     }
 
@@ -327,10 +328,15 @@ private struct ResultRow: View {
             Image(systemName: "function")
                 .font(.system(size: 22))
                 .foregroundStyle(.secondary)
-        case .youtubeDownload:
-            Image(systemName: "music.note.arrow.down")
-                .font(.system(size: 21))
-                .foregroundStyle(.secondary)
+        case .youtubeDownload(_, _, let isLoading):
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "music.note.arrow.down")
+                    .font(.system(size: 21))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
