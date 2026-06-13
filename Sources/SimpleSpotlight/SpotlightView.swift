@@ -170,7 +170,7 @@ struct SpotlightView: View {
         .liquidGlassPanel(radius: panelRadius)
         .background(
             RoundedRectangle(cornerRadius: panelRadius, style: .continuous)
-                .fill(.white.opacity(0.16))
+                .fill(.white.opacity(0.22))
         )
         .clipShape(RoundedRectangle(cornerRadius: panelRadius, style: .continuous))
         .onKeyPress(.escape) {
@@ -381,9 +381,9 @@ private extension View {
     @ViewBuilder
     func liquidGlassPanel(radius: CGFloat) -> some View {
         if #available(macOS 26.0, *) {
-            glassEffect(.clear.tint(.white.opacity(0.06)), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
         } else {
-            background(.ultraThinMaterial.opacity(0.70))
+            background(.ultraThinMaterial.opacity(0.78))
         }
     }
 }
