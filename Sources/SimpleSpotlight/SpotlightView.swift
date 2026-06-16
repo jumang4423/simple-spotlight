@@ -167,11 +167,7 @@ struct SpotlightView: View {
             }
         }
         .frame(width: 620)
-        .liquidGlassPanel(radius: panelRadius)
-        .background(
-            RoundedRectangle(cornerRadius: panelRadius, style: .continuous)
-                .fill(.white.opacity(0.22))
-        )
+        .liquidGlassSurface(radius: panelRadius)
         .clipShape(RoundedRectangle(cornerRadius: panelRadius, style: .continuous))
         .onKeyPress(.escape) {
             close()
@@ -302,8 +298,16 @@ private struct ResultRow: View {
     @ViewBuilder
     private var selectionBackground: some View {
         if isSelected {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.primary.opacity(0.08))
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .glassEffect(
+                        .clear.tint(.white.opacity(0.03)).interactive(),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.primary.opacity(0.08))
+            }
         } else {
             Color.clear
         }
@@ -379,9 +383,14 @@ private struct YouTubeIcon: View {
 
 private extension View {
     @ViewBuilder
-    func liquidGlassPanel(radius: CGFloat) -> some View {
+    func liquidGlassSurface(radius: CGFloat) -> some View {
         if #available(macOS 26.0, *) {
-            glassEffect(.regular.tint(.white.opacity(0.08)), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            GlassEffectContainer(spacing: 0) {
+                glassEffect(
+                    .regular.tint(.white.opacity(0.06)).interactive(),
+                    in: RoundedRectangle(cornerRadius: radius, style: .continuous)
+                )
+            }
         } else {
             background(.ultraThinMaterial.opacity(0.78))
         }
