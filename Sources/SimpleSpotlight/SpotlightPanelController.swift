@@ -1,10 +1,12 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 @MainActor
 final class SpotlightPanelController: NSObject, NSWindowDelegate {
     private let viewModel: SpotlightViewModel
     private lazy var panel: KeyablePanel = makePanel()
+    private var isAnimating = false
 
     init(viewModel: SpotlightViewModel) {
         self.viewModel = viewModel
@@ -12,6 +14,7 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
     }
 
     func toggle() {
+        guard !isAnimating else { return }
         if panel.isVisible {
             close()
         } else {
@@ -20,16 +23,52 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
     }
 
     func show() {
+        guard !panel.isVisible else { return }
         viewModel.reset()
         viewModel.requestFocus()
         NSApp.activate(ignoringOtherApps: true)
-        centerPanel()
+
+        let finalFrame = centeredFrame()
+        panel.setFrame(finalFrame.insetBy(dx: 10, dy: 7), display: false)
+        panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
         panel.orderFrontRegardless()
+
+        isAnimating = true
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.14
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+            panel.animator().setFrame(finalFrame, display: true)
+        } completionHandler: { [weak self] in
+            Task { @MainActor in
+                self?.panel.alphaValue = 1
+                self?.panel.setFrame(finalFrame, display: true)
+                self?.isAnimating = false
+            }
+        }
     }
 
     func close() {
-        panel.orderOut(nil)
+        guard panel.isVisible else { return }
+        let currentFrame = panel.frame
+        let finalFrame = currentFrame.insetBy(dx: 8, dy: 6)
+
+        isAnimating = true
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.10
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+            panel.animator().setFrame(finalFrame, display: true)
+        } completionHandler: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.panel.orderOut(nil)
+                self.panel.alphaValue = 1
+                self.panel.setFrame(currentFrame, display: false)
+                self.isAnimating = false
+            }
+        }
     }
 
     func windowDidResignKey(_ notification: Notification) {
@@ -60,14 +99,14 @@ final class SpotlightPanelController: NSObject, NSWindowDelegate {
         return panel
     }
 
-    private func centerPanel() {
+    private func centeredFrame() -> NSRect {
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let size = panel.frame.size
         let origin = NSPoint(
             x: screenFrame.midX - size.width / 2,
             y: screenFrame.midY - size.height / 2 + 120
         )
-        panel.setFrameOrigin(origin)
+        return NSRect(origin: origin, size: size)
     }
 }
 
